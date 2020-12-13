@@ -33,8 +33,8 @@ namespace KNN.Infrastructure.Helpers
         public WiltEntity NormalizeEntity(WiltEntity wiltEntity)
         {
             var normalized = wiltEntity.Clone();
-            minimaxHelpingObjects.ForEach(m => m.NormalizeValue(ref wiltEntity));
-            return wiltEntity;
+            minimaxHelpingObjects.ForEach(m => m.NormalizeValue(ref normalized));
+            return normalized;
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using CsvHelper;
 using KNN.Models.Input;
 
@@ -16,10 +17,11 @@ namespace KNN.Infrastructure.Parsing
         /// </summary>
         public static IEnumerable<WiltEntity> ParseEntities(string path)
         {
-            using (var reader = new StreamReader(path))
+            using (var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var reader = new StreamReader(fileStream))
             using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
             {
-                return csv.GetRecords<WiltEntity>();
+                return csv.GetRecords<WiltEntity>().ToList();
             }
         }
     }

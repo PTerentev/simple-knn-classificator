@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using KNN.Common;
 using KNN.Infrastructure.Algorithm;
@@ -17,8 +20,12 @@ namespace KNN.ViewModels
     /// </summary>
     internal class MainWindowViewModel : INotifyPropertyChanged
     {
+        private const string ProcessingMessage = "Processing";
+
+        private string filesDirectory;
         private string outputClassName;
         private string testPercentage;
+        private bool canRunTest;
 
         private List<WiltEntity> wiltTrainingEntities;
         private List<WiltEntity> wiltTestEntities;
@@ -27,13 +34,27 @@ namespace KNN.ViewModels
         {
             InitializeCommands();
             WiltEntity = new WiltEntity();
+            canRunTest = true;
         }
 
         public WiltEntity WiltEntity { get; set; }
 
-        public bool NormalizationRequred { get; set; } = true;
+        public bool NormalizationRequired { get; set; } = false;
 
-        public int NeighbourCount { get; set; } = 3;
+        public int NeighborCount { get; set; } = 3;
+
+        public bool CanRunTest
+        {
+            get
+            {
+                return canRunTest;
+            }
+            set
+            {
+                canRunTest = value;
+                OnPropertyChanged();
+            }
+        }
 
         public string OutputClassName
         {
@@ -43,8 +64,8 @@ namespace KNN.ViewModels
             }
             set
             {
-                OnPropertyChanged();
                 outputClassName = value;
+                OnPropertyChanged();
             }
         }
 
@@ -56,8 +77,8 @@ namespace KNN.ViewModels
             }
             set
             {
-                OnPropertyChanged();
                 testPercentage = value;
+                OnPropertyChanged();
             }
         }
 
@@ -71,37 +92,58 @@ namespace KNN.ViewModels
 
         private void InitializeCommands()
         {
-            GetClassEntityCommand = new RelayCommand(GetClassEntity, (obj) => wiltTrainingEntities != null);
-            TestPercentageCommand = new RelayCommand(GetTestPercentage, (obj) => wiltTrainingEntities != null && wiltTestEntities != null);
+            GetClassEntityCommand = new RelayCommand(GetClassEntity, obj => wiltTrainingEntities != null);
+            TestPercentageCommand = new RelayCommand(GetTestPercentage, obj => wiltTrainingEntities != null && wiltTestEntities != null);
             LoadTrainingDataSetCommand = new RelayCommand(obj => LoadDataSet(ref wiltTrainingEntities));
-            LoadTestDataSetCommand = new RelayCommand(obj => LoadDataSet(ref wiltTestEntities));
+            LoadTestDataSetCommand = new RelayCommand(obj => LoadDataSet(ref wiltTestEntities), obj => wiltTrainingEntities != null);
         }
 
-        private void GetClassEntity(object obj)
+        private async void GetClassEntity(object obj)
         {
-            OutputClassName = string.Empty;
-            var classificationService = new WiltClassificationService(wiltTrainingEntities, NormalizationRequred);
-            var classEnum = classificationService.GetWiltEntityClass(WiltEntity, NeighbourCount);
-            OutputClassName = classEnum.ToString();
+            await Task.Factory.StartNew(() =>
+            {
+                CanRunTest = false;
+                OutputClassName = ProcessingMessage;
+                var classificationService = new WiltClassificationService(wiltTrainingEntities, NormalizationRequired);
+                var classEnum = classificationService.GetWiltEntityClass(WiltEntity, NeighborCount);
+                OutputClassName = classEnum.ToString();
+                CanRunTest = true;
+            });
         }
 
-        private void GetTestPercentage(object obj)
+        private async void GetTestPercentage(object obj)
         {
-            TestPercentage = string.Empty;
-            var classificationService = new WiltClassificationService(wiltTrainingEntities, NormalizationRequred);
-            var percentage = classificationService.GetTestPercentage(wiltTestEntities, NeighbourCount);
-            TestPercentage = percentage.ToString();
+            await Task.Factory.StartNew(() =>
+            {
+                CanRunTest = false;
+                TestPercentage = ProcessingMessage;
+                var classificationService = new WiltClassificationService(wiltTrainingEntities, NormalizationRequired);
+                var percentage = classificationService.GetTestPercentage(wiltTestEntities, NeighborCount);
+                TestPercentage = percentage.ToString("N2") + " %";
+                CanRunTest = true;
+            });
         }
 
         private void LoadDataSet(ref List<WiltEntity> dataSet)
         {
             var openFileDialog = new OpenFileDialog();
-            openFileDialog.InitialDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            openFileDialog.Filter = "csv files (*.csv)";
+            openFileDialog.InitialDirectory = string.IsNullOrEmpty(filesDirectory) ?
+                AppDomain.CurrentDomain.BaseDirectory :
+                filesDirectory;
 
-            if (openFileDialog.ShowDialog() == true)
+            openFileDialog.Filter = "csv files (*.csv)|*.csv";
+
+            if (openFileDialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(openFileDialog.FileName))
             {
-                dataSet = WiltDataSetParser.ParseEntities(openFileDialog.FileName).ToList();
+                try
+                {
+                    filesDirectory = Path.GetDirectoryName(openFileDialog.FileName);
+                    dataSet = WiltDataSetParser.ParseEntities(openFileDialog.FileName).ToList();
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show(e.Message);
+                }
             }
         }
 

@@ -3,8 +3,14 @@ using System;
 
 namespace KNN.Infrastructure.Parsing
 {
-    public static class ClassNameParser
+    /// <summary>
+    /// Wilt class name parser.
+    /// </summary>
+    public static class WiltClassNameParser
     {
+        /// <summary>
+        /// Parse.
+        /// </summary>
         public static WiltClasses Parse(WiltEntity entity)
         {
             if (string.Equals(entity.Class, "w", StringComparison.InvariantCultureIgnoreCase))

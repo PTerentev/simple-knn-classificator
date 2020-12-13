@@ -24,9 +24,9 @@ namespace KNN.Infrastructure.Helpers
             this.minValue = wiltEntities.Min(e => GetValue(e));
         }
 
-        public void NormalizeValue(WiltEntity wiltEntity)
+        public void NormalizeValue(ref WiltEntity wiltEntity)
         {
-            var normalizedValue = (GetValue(wiltEntity) - minValue) / (maxValue / minValue);
+            var normalizedValue = (GetValue(wiltEntity) - minValue) / (maxValue - minValue);
             property.SetValue(wiltEntity, normalizedValue);
         }
 

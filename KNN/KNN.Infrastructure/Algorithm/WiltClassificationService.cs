@@ -11,23 +11,23 @@ namespace KNN.Infrastructure.Algorithm
     {
         private readonly List<WiltFunctionalEntity> functionalEntities;
         private readonly NormalizeHelper normalizeHelper;
-        private readonly bool normalizationRequred;
+        private readonly bool normalizationRequired;
 
-        public WiltClassificationService(IEnumerable<WiltEntity> wiltEntities, bool normalizationRequred)
+        public WiltClassificationService(IEnumerable<WiltEntity> wiltEntities, bool normalizationRequired)
         {
-            if (normalizationRequred)
+            if (normalizationRequired)
             {
                 normalizeHelper = new NormalizeHelper(wiltEntities);
                 wiltEntities = normalizeHelper.NormalizeEntites(wiltEntities);
             }
 
-            this.normalizationRequred = normalizationRequred;
+            this.normalizationRequired = normalizationRequired;
             this.functionalEntities = wiltEntities.Select(e => new WiltFunctionalEntity(e)).ToList();
         }
 
-        public WiltClasses GetWiltEntityClass(WiltEntity wiltEntity, int neighbourCount)
+        public WiltClasses GetWiltEntityClass(WiltEntity wiltEntity, int neighborCount)
         {
-            if (normalizationRequred)
+            if (normalizationRequired)
             {
                 wiltEntity = normalizeHelper.NormalizeEntity(wiltEntity);
             }
@@ -35,32 +35,32 @@ namespace KNN.Infrastructure.Algorithm
             var functionalEntity = new WiltFunctionalEntity(wiltEntity);
             var neighbours = functionalEntities
                 .OrderBy(e => functionalEntity.CalculateDistance(e))
-                .Take(neighbourCount)
+                .Take(neighborCount)
                 .ToList();
 
             return VoteEntities(neighbours);
         }
 
-        public double GetTestPercentage(IEnumerable<WiltEntity> testEntities, int neighbourCount)
+        public double GetTestPercentage(IEnumerable<WiltEntity> testEntities, int neighborCount)
         {
-            if (normalizationRequred)
+            if (normalizationRequired)
             {
                 testEntities = normalizeHelper.NormalizeEntites(testEntities).ToList();
             }
 
-            var testEntitiesCount = testEntities.Count();
-            var rightClassCount = 0;
+            double testEntitiesCount = testEntities.Count();
+            double rightClassCount = 0;
 
             foreach (var entity in testEntities)
             {
                 var functionalEntity = new WiltFunctionalEntity(entity);
-                if (functionalEntity.WiltClass == GetWiltEntityClass(entity, neighbourCount))
+                if (functionalEntity.WiltClass == GetWiltEntityClass(entity, neighborCount))
                 {
                     rightClassCount++;
                 }
             }
 
-            return rightClassCount / testEntitiesCount;
+            return (rightClassCount / testEntitiesCount) * 100;
         }
 
         private WiltClasses VoteEntities(List<WiltFunctionalEntity> entities)
@@ -76,6 +76,7 @@ namespace KNN.Infrastructure.Algorithm
             }
 
             var maxCount = votes.Max(pair => pair.Value);
+
             return votes.First(pair => pair.Value == maxCount).Key;
         }
 
